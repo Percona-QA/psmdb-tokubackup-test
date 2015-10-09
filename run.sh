@@ -25,6 +25,10 @@ run_server
 
 mongo_command "createOplogIndex('${dbName}')"
 
+# start pre-load
+
+echo 'Loading some initial data...'
+
 # set the initial state
 
 mongo_command "setState('${dbName}', 'before')"
@@ -48,6 +52,9 @@ if ! [ "${backupThrottle}" == "0" ]; then
 fi
 
 # initiate the backup
+
+echo 'Starting backup...'
+
 spawn_script "worker_backup.js" "threadId=$((1 + ${threads} * 3)); basedir='${basedir}'"
 
 # monitor status
