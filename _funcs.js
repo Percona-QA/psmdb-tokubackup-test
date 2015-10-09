@@ -75,7 +75,7 @@ function insertTransaction(dbName,maxColl,maxAcct,maxAmount,wc) {
   var ldb=db.getSiblingDB(dbName);
 
   var cNum=Math.floor(Random.rand() * maxColl + 1);
-  var acctNum=Math.floor(dom.rand() * maxAcct + 1);
+  var acctNum=Math.floor(Random.rand() * maxAcct + 1);
   var lcoll=db['acct'+cNum];
 
   // amount can be postive or negative
@@ -169,10 +169,22 @@ function pausecomp(ms) {
 } 
 
 /**
+ * wait for state
+ *
+ */
+function waitState(state) {
+  while (getState(dbName) != state) {
+    if (DEBUG > 2) { print("getState(dbName): "+getState(dbName)+", state: "+state); }
+    pausecomp(stateCheckPause);
+  }
+}
+
+/**
  * worker function for loading transactions
  *
  */
 function worker_insertTransactions(state) {
+  waitState(state);
   while (getState(dbName) == state) {
     for (var i=0; i < opBatch; i++) {
       insertTransaction(dbName,maxCollections,maxAccounts,maxAmount,writeConcern);
@@ -186,9 +198,10 @@ function worker_insertTransactions(state) {
  *
  */
 function worker_createDocuments(state) {
+  waitState(state);
   while (getState(dbName) == state) {
     for (var i=0; i < opBatch; i++) {
-      createDocuments(dbName,maxCollections,writeConcern);
+      createDocument(dbName,maxCollections,writeConcern);
       pausecomp(opPause);
     }
   }
@@ -199,9 +212,10 @@ function worker_createDocuments(state) {
  *
  */
 function worker_deleteDocuments(state) {
+  waitState(state);
   while (getState(dbName) == state) {
     for (var i=0; i < opBatch; i++) {
-      deleteDocuments(dbName,maxCollections,writeConcern);
+      deleteDocument(dbName,maxCollections,writeConcern);
       pausecomp(opPause);
     }
   }

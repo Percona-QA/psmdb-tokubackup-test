@@ -17,6 +17,11 @@ function read_configuration {
     fi
   done < "${cnf}"
 
+  # set binary names
+
+  mongo="${binDir:-/usr/bin}/mongo"
+  mongod="${binDir:-/usr/sbin}/mongod"
+
 }
 
 # Run the mongod server
@@ -79,3 +84,4 @@ function spawn_script {
 
   ${mongo} --quiet --eval "CONF='${CONF:-}';${params}" ${dbName} ${script} > /dev/null 2>&1 &
 }
+

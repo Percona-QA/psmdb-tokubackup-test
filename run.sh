@@ -8,11 +8,7 @@ source "${basedir}/_funcs.sh"
 
 read_configuration
 
-# set binary names
-mongo="${binDir}/mongo"
-mongod="${binDir}/mongod"
-
-# run the backup test
+# run test from this project directory 
 
 cd "${basedir}"
 
@@ -29,13 +25,51 @@ run_server
 
 mongo_command "createOplogIndex('${dbName}')"
 
-# set the state
+# set the initial state
 
-mongo_command "setState('${dbName}', 'xxx')"
+mongo_command "setState('${dbName}', 'before')"
 
-mongo_command "getState('${dbName}')"
+# spawn workers
 
-echo $mongo_command_result
+for threadId in $(seq 1 $threads); do
+  spawn_script "worker_insertTransaction.js" "threadId=$((${threadId}));"
+  spawn_script "worker_createDocuments.js"   "threadId=$((${threadId} + ${threads}));"
+  spawn_script "worker_deleteDocuments.js"   "threadId=$((${threadId} + ${threads} * 2));"
+done
 
-shutdown_server
+# run for a while
+
+sleep ${loadForSeconds:-60}
+
+# set backup rate
+
+if ! [ "${backupThrottle}" == "0" ]; then
+  mongo_command "db.runCommand({backupThrottle:${backupThrottle}})"
+fi
+
+# initiate the backup
+spawn_script "worker_backup.js" "threadId=$((1 + ${threads} * 3)); basedir='${basedir}'"
+
+# monitor status
+while : ; do
+
+  mongo_command "printjson(db.runCommand({backupStatus:1}))"
+  echo "${mongo_command_result}" 
+
+  sleep ${secondsBetweenStatus:-1}
+
+done
+
+# after traffic
+
+sleep ${afterTraffic:-0}
+
+# set the end state
+
+mongo_command "setState('${dbName}', 'exit')"
+
+# wait for children to exit
+
+# shutdown_server
+
 
