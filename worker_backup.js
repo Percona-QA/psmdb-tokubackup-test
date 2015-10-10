@@ -10,7 +10,7 @@ setRandomSeed(threadId);
 // load before
 //
 setState(dbName,'during');
-print("backup dir:"+basedir + backupDir);
-db.getSiblingDB('admin').runCommand({ backupStart: basedir + '/' + backupDir });
+if (DEBUG > 1) { print("backup dir: "+basedir + '/' + backupDir); }
+printjson(db.getSiblingDB('admin').runCommand({ backupStart: basedir + '/' + backupDir }));
 setState(dbName,'after');
 
