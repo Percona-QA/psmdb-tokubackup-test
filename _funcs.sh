@@ -24,6 +24,13 @@ function read_configuration {
 
 }
 
+# check to see if mongo or mongod is running
+# returns 0=not running, 1=server running, 2+=server and shell(s) running
+function mongodb_is_running {
+  mongodb_is_running_result=$(ps aux | grep '[m]ongod* ' | wc -l)
+}
+
+
 # Run the mongod server
 
 function run_server {

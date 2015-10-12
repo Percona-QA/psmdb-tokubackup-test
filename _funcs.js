@@ -16,7 +16,7 @@ if ( typeof CONF !== 'undefined' && CONF !== '' ) {
 states = {
   'before' : 'loading before copy',
   'during' : 'started during capture',
-  'after'  : 'comleted after backup',
+  'after'  : 'completed after backup',
   'exit'   : 'exit at end'
 };
 
@@ -46,11 +46,7 @@ function createOplogIndex(dbName) {
  */
 function setState(dbName, status) {
   var ldb=db.getSiblingDB(dbName);
-  if (ldb.state.count() == 0) {
-    ldb.state.insert({state:status});
-  } else {
-    ldb.state.update({},{state:status},{multi:true});
-  }
+  ldb.state.update({_id: 1},{_id: 1, state: status},{upsert: true});
   return status;
 }
 
@@ -60,7 +56,7 @@ function setState(dbName, status) {
  */
 function getState(dbName) {
   var ldb=db.getSiblingDB(dbName);
-  return(ldb.state.findOne().state);
+  return(ldb.state.findOne({_id:1}).state);
 }
 
 /**
