@@ -30,12 +30,14 @@ function mongodb_is_running {
   mongodb_is_running_result=$(ps aux | grep '[m]ongod* ' | wc -l)
 }
 
-
 # Run the mongod server
 
 function run_server {
 
   opts="$1"
+  dbpath="$2"
+
+  [ "${dbpath}" == "" ] && dbpath=${dataDir}
 
   # disable transparent huge pages
   
@@ -46,7 +48,7 @@ function run_server {
     fi
     # check to see if the settings took
     if grep -Fq '[always]' /sys/kernel/mm/transparent_hugepage/enabled; then
-      echo "ERROR: Unable to disable transparent huge pages in the kernel."
+      echo "failed: Unable to disable transparent huge pages in the kernel."
       echo "You need to set this as root before running this script."
       echo "If you are running in a container, you need to set this in the"
       echo "host kernel."
@@ -54,7 +56,7 @@ function run_server {
     fi
   fi
 
-  ${mongod} --dbpath=${dataDir} --storageEngine=${storageEngine} ${opts} > "${basedir}/mongod.log" 2>&1 &
+  ${mongod} --dbpath=${dbpath} --storageEngine=${storageEngine} ${opts} > "${basedir}/mongod.log" 2>&1 &
   MONGOD_PID=$!
   MONGO_EXIT=$?
 

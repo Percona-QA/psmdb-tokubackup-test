@@ -16,7 +16,7 @@ cd "${basedir}"
 
 mongodb_is_running
 if [ ${mongodb_is_running_result:=0} -gt 0 ]; then
-  echo "ERROR: There are currently mongo processes running."
+  echo "failed: There are currently mongo processes running."
   echo "Please shutdown any existing mongo processes before"
   echo "running this test."
   exit 1;
@@ -107,9 +107,11 @@ for (( i=0; i<30; i++ )); do
 done
 
 if [ ${mongodb_is_running_result} -gt 1 ]; then
-  echo "ERROR: some mongo shells did not exit."
+  echo "failed: some mongo shells did not exit."
   exit 1;
 fi
+
+# TODO - record and report transaction and document statistics
 
 # shutdown_server
 
@@ -124,6 +126,8 @@ for (( i=0; i<30; i++ )); do
 done
 
 if [ ${mongodb_is_running_result} -gt 0 ]; then
-  echo "ERROR: some mongo shells did not exit."
+  echo "failed: mongod server did not exit."
   exit 1;
 fi
+
+# 
