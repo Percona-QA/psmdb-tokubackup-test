@@ -1,13 +1,21 @@
 #!/bin/bash
 
 # Returns a number as percent complete 0-100 as progress
+# of current PSMDB TokuBackup process
+#
+# author: david. bennett at percona. com
+#
+# Returns string '-1' on failure
 #
 # logic:
 #   sb = total size in bytes of db directory (source)
-#   db = total size in bytes of backup directory (source)
+#   db = total size in bytes of backup directory (destination)
 #        (minus size in bytes of files that don't exist in db directory)
 #   percent complete is integer part (floor) of ( db / sb * 100 )
 #    
+# requires perl interpreter for floating point math
+#
+# Note: backup must be in progress for percent to be accurate
 
 # Usage:  psmdb_backup_progress.sh {db path} {backup path}
 
@@ -17,14 +25,26 @@ if [ $# -lt 2 ] || ! [ -d "$1" ] || ! [ -d "$2" ]; then
   exit 1;
 fi
 
-tmpfile=$(mktemp)
-diff "${1}" "${2}" | grep "^Only in ${2}"| sed 's@^.*: @@' > "${tmpfile}"
+# temp files
+s_files=$(mktemp)
+d_files=$(mktemp)
+d_not_in_s=$(mktemp)
 
-sb=$(du -b ${1} | cut -f1)
+# get lists of files and find those in destination but not source
+ls -1 "${1}" | sort > "${s_files}"
+ls -1 "${2}" | sort > "${d_files}"
+diff -u "${s_files}" "${d_files}" | grep '^+[^+]' | sed 's/^\+//' > "${d_not_in_s}"
 
-db=$(du -b -X ${tmpfile} "${2}" | cut -f1)
-[ -e "${tmpfile}" ] && rm "${tmpfile}"
+# get size of directories less dest not in src
+sb=$(du -b "${1}" | cut -f1)
+db=$(du -b -X "${d_not_in_s}" "${2}" | cut -f1)
 
+# clean up temp files 
+for tf in "${s_files}" "${d_files}" "${d_not_in_s}"; do
+  [ -e "${tf}" ] && rm "${tf}"
+done
+
+# calcuate percent complete and output
 percent_complete=$(echo "printf(\"%d\n\",${db}/${sb}*100);" | perl -f-)
 
 echo "${percent_complete}"

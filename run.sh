@@ -67,17 +67,19 @@ echo 'Starting backup...'
 
 spawn_script "worker_backup.js" "threadId=$((1 + ${threads} * 3)); basedir='${basedir}'"
 
-# monitor status
+# monitor status - wait for inProgress: true then inProgress: false
+# while displaying percent complete.
 monitorState="before"
 while : ; do
 
   mongo_command "printjson(db.runCommand({backupStatus:1}))"
-  [ ${DEBUG} -gt "1" ] && echo "${mongo_command_result}"
-  percentDone=$(echo "${mongo_command_result}" | awk 'BEGIN{FS=":";RS=","}/percentDone/{print $2}' | sed 's/ //' | cut -d'.' -f1)
+  inProgress=$(echo "${mongo_command_result}" | awk 'BEGIN{FS=":";RS=","}/inProgress/{print $2}' | sed 's/ //' | cut -d'.' -f1)
 
-  # wait for non-zero then zero
-  [ ${percentDone:=0} -gt 0 ] && monitorState="active"
-  [ ${monitorState} == "active" ] && [ ${percentDone} -eq 0 ] && break;
+  # wait for true then false
+  [ "${inProgress:='false'}" == "true" ] && monitorState="active"
+  [ ${monitorState} == "active" ] && [ "${inProgress}" == "false" ] && break;
+
+  [ ${DEBUG} -gt "1" ] && echo "${mongo_command_result}"
 
   percentComplete=$(./psmdb_backup_progress.sh "${dataDir}" "${backupDir}")
 

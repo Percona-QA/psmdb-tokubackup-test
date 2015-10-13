@@ -44,29 +44,33 @@ function createOplogIndex(dbName) {
  * @param dbName database name
  * @param status the status to set before,started,ended,exit
  */
-function setState(dbName, status) {
+function setState(dbName, s) {
   var ts = new Date().getTime();
   var ldb=db.getSiblingDB(dbName);
   var wc=0;
   if (typeof writeConcern !== 'undefined')
     wc=writeConcern;
   ldb.state.update(
-    { _id: 1 },
+    { '_id': 1 },
     {
-      $set: { _id: 1 },
-      $set: { state: status },
-      $set: { timestamp: ts },
-      $addToSet: { history: {
-        state: status,
-        timestamp: ts
-      }}
+      $set: { 
+        '_id': 1,
+        'state': s,
+        'timestamp': ts 
+      },
+      $addToSet: {
+        'history': {
+          'state': s,
+          'timestamp': ts
+        }
+      }
     },
     {
       upsert: true,
       writeConcern: wc 
     }
   );
-  return status;
+  return s;
 }
 
 /**
