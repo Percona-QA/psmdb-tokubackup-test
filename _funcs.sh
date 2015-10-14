@@ -58,14 +58,30 @@ function run_server {
 
   ${mongod} --dbpath=${dbpath} --storageEngine=${storageEngine} ${opts} > "${basedir}/mongod.log" 2>&1 &
   MONGOD_PID=$!
-  MONGO_EXIT=$?
+
+  [ ${DEBUG} -ge 3 ] && echo "mongod PID: ${MONGOD_PID}"
 
   # wait until server is listening
 
-  tail -f "${basedir}/mongod.log" | while read LOGLINE
+  tail -f --pid=${MONGOD_PID} "${basedir}/mongod.log" | while read LOGLINE
   do
-     [[ "${LOGLINE}" == *"waiting for connections"* ]] && pkill -P $$ tail
+
+    [ ${DEBUG} -ge 3 ] && echo "mongod log line: ${LOGLINE}"
+
+    if [[ "${LOGLINE}" == *"waiting for connections"* ]]; then
+      pkill -P $$ tail
+      [ ${DEBUG} -ge 3 ] && echo "mongod found: waiting for connections"
+    fi
+
   done
+
+  # check server is running
+  ps aux | grep -q "${mongod} --[d]bpath=${dbpath}" || {
+    [ ${DEBUG} -ge 3 ] && echo "mongod died"
+    echo "failed: mongod did not start"
+    tail -n10 "${basedir}/mongod.log"
+    exit 1;
+  }
 
 }
 
