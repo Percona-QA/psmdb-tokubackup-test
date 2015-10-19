@@ -108,8 +108,10 @@ function insertTransaction(dbName,maxColl,maxAcct,maxAmount,wc) {
     { _id: acctNum },
     {
       $inc: { total: amt },
-      $set: { timestamp: ts },
-      $set: { backupState: getState(dbName) },
+      $set: { 
+        timestamp: ts, 
+        backupState: getState(dbName) 
+      },
       $addToSet: { transactions: {
         timestamp: ts,
         backupState: getState(dbName),
