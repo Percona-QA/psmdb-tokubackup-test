@@ -76,7 +76,12 @@ function run_server {
 
   logfileArray+=("${basedir}/mongod.log")
 
-  ${mongod} --dbpath=${dbpath} --storageEngine=${storageEngine} ${opts} > "${logfileArray[-1]}" 2>&1 &
+  # if dbpath or storageEngine is not specified in passed options then use conf defaults
+  locOpts=""
+  [[ "${opts}" != *"--storageEngine"* ]] && locOpts="${locOpts} --storageEngine=${storageEngine}"
+  [[ "${opts}" != *"--dbpath"* ]] && locOpts="${locOpts} --dbpath=${dbpath}"
+
+  ${mongod} ${locOpts} ${opts} > "${logfileArray[-1]}" 2>&1 &
   MONGOD_PID=$!
 
   [ ${DEBUG} -ge 3 ] && echo "mongod PID: ${MONGOD_PID}"
@@ -109,9 +114,9 @@ function run_server {
 
 function shutdown_server {
 
-  logfileArray+=("${basedir}/mongod_shutdown.out")
+  logfileArray+=("${basedir}/mongod_shutdown.log")
 
-  ${mongod} --dbpath=${dataDir} --shutdown > "$logfileArray[-1]" 2>&1
+  ${mongod} --dbpath=${dataDir} --shutdown > "${logfileArray[-1]}" 2>&1
   MONGO_EXIT=$?
 
 }
