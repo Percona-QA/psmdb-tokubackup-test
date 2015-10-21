@@ -1,4 +1,4 @@
-load('_funcs.js');
+load(basedir+'/inc/_funcs.js');
 
 setRandomSeed(threadId);
 

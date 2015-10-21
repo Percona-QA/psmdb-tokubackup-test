@@ -1,4 +1,4 @@
-load('_funcs.js');
+load(basedir+'/inc/_funcs.js');
 
 // since 'backupStart' is blocking we need to spawn
 // it in a separate process.

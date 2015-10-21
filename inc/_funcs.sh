@@ -30,6 +30,24 @@ function mongodb_is_running {
   mongodb_is_running_result=$(ps aux | grep '[m]ongod* ' | wc -l)
 }
 
+# Clean up the working area and make data and backup directories
+
+function make_clean  {
+  (
+    cd "${basedir}"
+    rm -rf "${dataDir}" "${backupDir}"
+    mkdir -p "${dataDir}" "${backupDir}"
+  )
+
+  for lf in ${logfileArray[@]}; do
+    rm ${lf}
+  done
+
+  threadId=0
+  logfileArray=()
+  
+}
+
 # Run the mongod server
 
 function run_server {
@@ -56,14 +74,16 @@ function run_server {
     fi
   fi
 
-  ${mongod} --dbpath=${dbpath} --storageEngine=${storageEngine} ${opts} > "${basedir}/mongod.log" 2>&1 &
+  logfileArray+=("${basedir}/mongod.log")
+
+  ${mongod} --dbpath=${dbpath} --storageEngine=${storageEngine} ${opts} > "${logfileArray[-1]}" 2>&1 &
   MONGOD_PID=$!
 
   [ ${DEBUG} -ge 3 ] && echo "mongod PID: ${MONGOD_PID}"
 
   # wait until server is listening
 
-  tail -f --pid=${MONGOD_PID} "${basedir}/mongod.log" | while read LOGLINE
+  tail -f --pid=${MONGOD_PID} "${logfileArray[-1]}" | while read LOGLINE
   do
 
     [ ${DEBUG} -ge 3 ] && echo "mongod log line: ${LOGLINE}"
@@ -79,7 +99,7 @@ function run_server {
   ps aux | grep -q "${mongod} --[d]bpath=${dbpath}" || {
     [ ${DEBUG} -ge 3 ] && echo "mongod died"
     echo "failed: mongod did not start"
-    tail -n10 "${basedir}/mongod.log"
+    tail -n10 "${logfileArray[-1]}" 
     exit 1;
   }
 
@@ -89,7 +109,9 @@ function run_server {
 
 function shutdown_server {
 
- ${mongod} --dbpath=${dataDir} --shutdown > /dev/null 2>&1
+  logfileArray+=("${basedir}/mongod_shutdown.out")
+
+  ${mongod} --dbpath=${dataDir} --shutdown > "$logfileArray[-1]" 2>&1
   MONGO_EXIT=$?
 
 }
@@ -98,7 +120,12 @@ function shutdown_server {
 
 function mongo_command {
   cmd="$@"
-  mongo_command_result=$(${mongo} --quiet --eval "CONF='${CONF}';load('${basedir}/_funcs.js');$cmd" admin)
+
+  mongo_command_result=$(
+    ${mongo} --quiet \
+      --eval "CONF='${CONF}';basedir='${basedir}';load('${basedir}/inc/_funcs.js');printjson($cmd)" \
+      admin 2>&1
+  )
 }
 
 # spawn a background script
@@ -107,6 +134,15 @@ function spawn_script {
   script="$1"
   params="$2"
 
-  ${mongo} --quiet --eval "CONF='${CONF:-}';${params}" ${dbName} ${script} > /dev/null 2>&1 &
+  bn=$(basename "${script}")
+
+  ((threadId++))
+
+  logfileArray+=("${basedir}/script_${bn}_${threadId}.log")
+  echo "${script} ${params}" > "${logfileArray[-1]}"
+
+  ${mongo} \
+    --eval "CONF='${CONF:-}';basedir='${basedir}';threadId=${threadId};${params}" ${dbName} ${script} \
+    >> "${logfileArray[-1]}" 2>&1 &
 }
 
