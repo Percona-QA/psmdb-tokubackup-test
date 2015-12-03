@@ -101,7 +101,7 @@ function run_server {
   done
 
   # check server is running
-  ps aux | grep -q "${mongod} --[d]bpath=${dbpath}" || {
+  ps aux | grep -q "${mongod}.*--[d]bpath=${dbpath}" || {
     [ ${DEBUG} -ge 3 ] && echo "mongod died"
     echo "failed: mongod did not start"
     tail -n10 "${logfileArray[-1]}" 
