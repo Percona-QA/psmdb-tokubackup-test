@@ -81,14 +81,14 @@ function run_server {
   [[ "${opts}" != *"--storageEngine"* ]] && locOpts="${locOpts} --storageEngine=${storageEngine}"
   [[ "${opts}" != *"--dbpath"* ]] && locOpts="${locOpts} --dbpath=${dbpath}"
 
-  ${mongod} ${locOpts} ${opts} > "${logfileArray[-1]}" 2>&1 &
+  ${mongod} ${locOpts} ${opts} > "${logfileArray[@]:(-n):1}" 2>&1 &
   MONGOD_PID=$!
 
   [ ${DEBUG} -ge 3 ] && echo "mongod PID: ${MONGOD_PID}"
 
   # wait until server is listening
 
-  tail -f --pid=${MONGOD_PID} "${logfileArray[-1]}" | while read LOGLINE
+  tail -f --pid=${MONGOD_PID} "${logfileArray[@]:(-n):1}" | while read LOGLINE
   do
 
     [ ${DEBUG} -ge 3 ] && echo "mongod log line: ${LOGLINE}"
@@ -104,7 +104,7 @@ function run_server {
   ps aux | grep -q "${mongod}.*--[d]bpath=${dbpath}" || {
     [ ${DEBUG} -ge 3 ] && echo "mongod died"
     echo "failed: mongod did not start"
-    tail -n10 "${logfileArray[-1]}" 
+    tail -n10 "${logfileArray[@]:(-n):1}"
     exit 1;
   }
 
@@ -116,7 +116,7 @@ function shutdown_server {
 
   logfileArray+=("${basedir}/mongod_shutdown.log")
 
-  ${mongod} --dbpath=${dataDir} --shutdown > "${logfileArray[-1]}" 2>&1
+  ${mongod} --dbpath=${dataDir} --shutdown > "${logfileArray[@]:(-n):1}" 2>&1
   MONGO_EXIT=$?
 
 }
@@ -144,10 +144,10 @@ function spawn_script {
   ((threadId++))
 
   logfileArray+=("${basedir}/script_${bn}_${threadId}.log")
-  echo "${script} ${params}" > "${logfileArray[-1]}"
+  echo "${script} ${params}" > "${logfileArray[@]:(-n):1}"
 
   ${mongo} \
     --eval "CONF='${CONF:-}';basedir='${basedir}';threadId=${threadId};${params}" ${dbName} ${script} \
-    >> "${logfileArray[-1]}" 2>&1 &
+    >> "${logfileArray[@]:(-n):1}" 2>&1 &
 }
 
