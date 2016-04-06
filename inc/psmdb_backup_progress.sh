@@ -36,8 +36,8 @@ ls -1 "${2}" | sort > "${d_files}"
 diff -u "${s_files}" "${d_files}" | grep '^+[^+]' | sed 's/^\+//' > "${d_not_in_s}"
 
 # get size of directories less dest not in src
-sb=$(du -b "${1}" | cut -f1)
-db=$(du -b -X "${d_not_in_s}" "${2}" | cut -f1)
+sb=$(du -sb "${1}" | cut -f1)
+db=$(du -sb -X "${d_not_in_s}" "${2}" | cut -f1)
 
 # clean up temp files 
 for tf in "${s_files}" "${d_files}" "${d_not_in_s}"; do
